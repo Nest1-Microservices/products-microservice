@@ -95,7 +95,7 @@ export class ProductsService {
       product: product,
     };
   }
-  async validateProducts(ids: number[]) {
+  /* async validateProducts(ids: number[]) {
     ids = Array.from(new Set(ids));
     const products = await this.prisma.product.findMany({
       where: {
@@ -110,6 +110,27 @@ export class ProductsService {
         status: HttpStatus.BAD_REQUEST,
       });
     }
+    return products;
+  } */
+  async validateProducts(ids: number[]) {
+    const uniqueIds = Array.from(new Set(ids));
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: uniqueIds } },
+    });
+
+    if (products.length !== uniqueIds.length) {
+      // Calculamos cuáles ids no se encontraron, para que el error
+      // diga exactamente qué producto falló.
+      const foundIds = new Set(products.map((product) => product.id));
+      const missingIds = uniqueIds.filter((id) => !foundIds.has(id));
+
+      throw new RpcException({
+        status: HttpStatus.BAD_REQUEST,
+        message: `Products not found: ${missingIds.join(', ')}`,
+      });
+    }
+
     return products;
   }
 }
